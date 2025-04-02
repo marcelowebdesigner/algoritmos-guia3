@@ -1,0 +1,275 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr  2 13:11:00 2025
+
+@author: marce
+"""
+
+class Persona:
+    def __init__(self, dni, nombre):
+        self._dni = int(dni)
+        self._nom = nombre.strip()
+
+    def getDNI(self):
+        return self._dni
+
+    def getNombre(self):
+        return self._nom
+
+    def __lt__(self, other):
+        return self._dni < other._dni
+
+    def __le__(self, other):
+        return self._dni <= other._dni
+
+    def __gt__(self, other):
+        return self._dni > other._dni
+
+    def __ge__(self, other):
+        return self._dni >= other._dni
+
+    def __eq__(self, other):
+        return self._dni == other._dni
+
+    def __ne__(self, other):
+        return self._dni != other._dni
+
+    def __str__(self):
+        return f"{self._dni:8} | {self._nom}"
+
+
+class Cliente(Persona):
+    def __init__(self, dni, nombre, promotor, seguro):
+        super().__init__(dni, nombre)
+        self._promotor = promotor
+        self._seguros = [seguro.strip()]
+
+    def addTipoSeguro(self, seguro):
+        self._seguros.append(seguro.strip())
+
+    def getSeguros(self):
+        return self._seguros
+
+    def getPromotor(self):
+        return self._promotor
+
+
+class nodoArbol:
+    def __init__(self, val):
+        self._val = val
+        self._izq = None
+        self._der = None
+    
+    def setIzq(self, nodo):
+        self._izq = nodo
+    
+    def getIzq(self):
+        return self._izq
+    
+    def setDer(self, nodo):
+        self._der = nodo
+    
+    def getDer(self):
+        return self._der
+    
+    def getVal(self):
+        return self._val
+
+
+class abb:
+    def __init__(self):
+        self._root = None
+    
+    def add(self, val):
+        if self._root is None:
+            self._root = nodoArbol(val)
+        else:
+            self._add_recursivo(self._root, val)
+    
+    def _add_recursivo(self, nodo, val):
+        if val < nodo.getVal():
+            if nodo.getIzq() is None:
+                nodo.setIzq(nodoArbol(val))
+            else:
+                self._add_recursivo(nodo.getIzq(), val)
+        else:
+            if nodo.getDer() is None:
+                nodo.setDer(nodoArbol(val))
+            else:
+                self._add_recursivo(nodo.getDer(), val)
+    
+    def find(self, dni):
+        return self._find_recursivo(self._root, dni)
+    
+    def _find_recursivo(self, nodo, dni):
+        if nodo is None:
+            return None
+        
+        val = nodo.getVal()
+        if dni == val.getDNI():
+            return val
+        elif dni < val.getDNI():
+            return self._find_recursivo(nodo.getIzq(), dni)
+        else:
+            return self._find_recursivo(nodo.getDer(), dni)
+
+
+class nodoLista:
+    def __init__(self, dato):
+        self._dato = dato
+        self._sig = None
+    
+    def getSig(self):
+        return self._sig
+    
+    def setSig(self, nodo):
+        self._sig = nodo
+    
+    def getDato(self):
+        return self._dato
+    
+    def __str__(self):
+        return f"{self._dato}"
+
+
+class lista:
+    def __init__(self):
+        self._head = None
+        self._cnt = 0
+        self._act = None
+    
+    def __len__(self):
+        return self._cnt
+    
+    def __iter__(self):
+        self._act = self._head
+        return self
+    
+    def __next__(self):
+        if self._act is None:
+            raise StopIteration
+        dato = self._act.getDato()
+        self._act = self._act.getSig()
+        return dato
+    
+    def add(self, dato):
+        nuevo_nodo = nodoLista(dato)
+        if self._head is None:
+            self._head = nuevo_nodo
+        else:
+            actual = self._head
+            while actual.getSig() is not None:
+                actual = actual.getSig()
+            actual.setSig(nuevo_nodo)
+        self._cnt += 1
+    
+    def goFirst(self):
+        self._act = self._head
+        return self._act is not None
+    
+    def goNext(self):
+        if self._act is not None:
+            self._act = self._act.getSig()
+        return self._act is not None
+    
+    def getActVal(self):
+        if self._act is None:
+            return None
+        return self._act.getDato()
+    
+    def getActPos(self):
+        return self._act
+    
+    def remove(self, nodo):
+        if self._head is None or nodo is None:
+            return
+        
+        if nodo == self._head:
+            self._head = self._head.getSig()
+            self._cnt -= 1
+            if self._act == nodo:
+                self._act = self._head
+            return
+        
+        anterior = self._head
+        while anterior is not None and anterior.getSig() != nodo:
+            anterior = anterior.getSig()
+        
+        if anterior is None:
+            return
+        
+        anterior.setSig(nodo.getSig())
+        self._cnt -= 1
+        if self._act == nodo:
+            self._act = nodo.getSig()
+    
+    def find(self, dni):
+        arbol = abb()
+        if self.goFirst():
+            arbol.add(self.getActVal())
+            while self.goNext():
+                arbol.add(self.getActVal())
+        return arbol.find(dni)
+
+
+class Promotor(Persona):
+    def __init__(self, dni, nombre):
+        super().__init__(dni, nombre)
+        self._clientes = lista()  # Usamos lista enlazada en lugar de lista estándar
+    
+    def addCliente(self, cliente):
+        self._clientes.add(cliente)  # Usamos el método add de la lista enlazada
+    
+    def getCntClientes(self):
+        return len(self._clientes)
+    
+    def getClientes(self):
+        return self._clientes
+    
+    def __str__(self):
+        return f"Promotor: {self.getNombre()}"
+    
+    def buscarCliente(self, dni):
+        return self._clientes.find(dni)  # Usamos el método find de la lista enlazada
+
+
+def main():
+    prom = Promotor(24317128, "Diego de la Vega")
+
+    # Cargar clientes desde archivo
+    with open("clientes.txt", "r", encoding="utf-8") as file:
+        for line in file:
+            datos = line.strip().split(";")
+            if len(datos) >= 3:
+                dni = datos[0].strip()
+                nombre = datos[1].strip()
+                seguros = [s.strip() for s in datos[2].split("|")]
+
+                cliente_obj = Cliente(dni, nombre, prom, seguros[0])
+                for seguro in seguros[1:]:
+                    cliente_obj.addTipoSeguro(seguro)
+
+                prom.addCliente(cliente_obj)
+
+    print(f"{prom}")
+    print("Listado de clientes:")
+    for cli in prom.getClientes():
+        print(f"{cli.getDNI()} - {cli.getNombre()}")
+
+    # Búsqueda interactiva
+    while True:
+        dni_ingresado = int(input("\nIngrese un DNI para buscar (0 o negativo para salir): "))
+        if dni_ingresado <= 0:
+            break
+
+        cliente_encontrado = prom.buscarCliente(dni_ingresado)
+        if cliente_encontrado:
+            print(f"\nCliente encontrado:\n{cliente_encontrado}")
+            print("Seguros contratados:")
+            for seguro in cliente_encontrado.getSeguros():
+                print(f"\t- {seguro}")
+        else:
+            print("Cliente no encontrado.")
+
+if __name__ == "__main__":
+    main()
