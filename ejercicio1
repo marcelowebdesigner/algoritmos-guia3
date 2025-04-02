@@ -1,0 +1,256 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Apr  2 12:55:17 2025
+
+@author: marce
+"""
+
+class Persona:
+    def __init__(self, dni, nombre):
+        self._dni = int(dni)
+        self._nom = nombre.strip()
+
+    def getDNI(self):
+        return self._dni
+
+    def getNombre(self):
+        return self._nom
+
+    def __lt__(self, other):
+        return self._dni < other._dni
+
+    def __le__(self, other):
+        return self._dni <= other._dni
+
+    def __gt__(self, other):
+        return self._dni > other._dni
+
+    def __ge__(self, other):
+        return self._dni >= other._dni
+
+    def __eq__(self, other):
+        return self._dni == other._dni
+
+    def __ne__(self, other):
+        return self._dni != other._dni
+
+    def __str__(self):
+        return f"{self._dni:8} | {self._nom}"
+
+
+class Cliente(Persona):
+    def __init__(self, dni, nombre, promotor, seguro):
+        super().__init__(dni, nombre)
+        self._promotor = promotor
+        self._seguros = [seguro.strip()]
+
+    def addTipoSeguro(self, seguro):
+        self._seguros.append(seguro.strip())
+
+    def getSeguros(self):
+        return self._seguros
+
+    def getPromotor(self):
+        return self._promotor
+
+
+class nodoLista:
+    def __init__(self, dato):
+        self._dato = dato
+        self._sig = None
+    
+    def getSig(self):
+        return self._sig
+    
+    def setSig(self, nodo):
+        self._sig = nodo
+    
+    def getDato(self):
+        return self._dato
+    
+    def __str__(self):
+        return f"{self._dato}"
+
+
+class lista:
+    def __init__(self):
+        self._head = None
+        self._cnt = 0
+        self._act = None
+    
+    def __len__(self):
+        return self._cnt
+    
+    def __iter__(self):
+        self._act = self._head
+        return self
+    
+    def __next__(self):
+        if self._act is None:
+            raise StopIteration
+        dato = self._act.getDato()
+        self._act = self._act.getSig()
+        return dato
+    
+    def add(self, dato):
+        nuevo_nodo = nodoLista(dato)
+        if self._head is None:
+            self._head = nuevo_nodo
+        else:
+            actual = self._head
+            while actual.getSig() is not None:
+                actual = actual.getSig()
+            actual.setSig(nuevo_nodo)
+        self._cnt += 1
+    
+    def goFirst(self):
+        self._act = self._head
+        return self._act is not None
+    
+    def goNext(self):
+        if self._act is not None:
+            self._act = self._act.getSig()
+        return self._act is not None
+    
+    def getActVal(self):
+        if self._act is None:
+            return None
+        return self._act.getDato()
+    
+    def getActPos(self):
+        return self._act
+    
+    def remove(self, nodo):
+        if self._head is None or nodo is None:
+            return
+        
+        # Caso especial: eliminar el primer nodo
+        if nodo == self._head:
+            self._head = self._head.getSig()
+            self._cnt -= 1
+            # Si estábamos apuntando al nodo eliminado, avanzamos
+            if self._act == nodo:
+                self._act = self._head
+            return
+        
+        # Buscar el nodo anterior al que queremos eliminar
+        anterior = self._head
+        while anterior is not None and anterior.getSig() != nodo:
+            anterior = anterior.getSig()
+        
+        if anterior is None:
+            return  # Nodo no encontrado en la lista
+        
+        # Reconectar los nodos
+        anterior.setSig(nodo.getSig())
+        self._cnt -= 1
+        # Si estábamos apuntando al nodo eliminado, avanzamos
+        if self._act == nodo:
+            self._act = nodo.getSig()
+
+
+class Promotor(Persona):
+    def __init__(self, dni, nombre):
+        super().__init__(dni, nombre)
+        self._clientes = lista()  # Ahora es una lista enlazada
+    
+    def addCliente(self, cliente):
+        self._clientes.add(cliente)
+    
+    def getCntClientes(self):
+        return len(self._clientes)
+    
+    def getClientes(self):
+        return self._clientes
+    
+    def __str__(self):
+        return f"Promotor: {self.getNombre()}"
+    
+    def ordenarClientes(self):
+        # Convertir la lista enlazada a una lista normal para ordenar
+        temp_list = []
+        if self._clientes.goFirst():
+            temp_list.append(self._clientes.getActVal())
+            while self._clientes.goNext():
+                temp_list.append(self._clientes.getActVal())
+        
+        # Ordenar la lista temporal
+        self._ordenar_quickSort(temp_list, 0, len(temp_list) - 1)
+        
+        # Reconstruir la lista enlazada ordenada
+        self._clientes = lista()
+        for cliente in temp_list:
+            self._clientes.add(cliente)
+    
+    def _ordenar_quickSort(self, lista, inicio, fin):
+        if inicio < fin:
+            pi = self._partition(lista, inicio, fin)
+            self._ordenar_quickSort(lista, inicio, pi - 1)
+            self._ordenar_quickSort(lista, pi + 1, fin)
+    
+    def _partition(self, lista, inicio, fin):
+        pivot = lista[fin]
+        i = inicio - 1
+        for j in range(inicio, fin):
+            if lista[j] < pivot:
+                i += 1
+                lista[i], lista[j] = lista[j], lista[i]
+        lista[i + 1], lista[fin] = lista[fin], lista[i + 1]
+        return i + 1
+    
+    def buscarCliente(self, dni):
+        # Convertir la lista enlazada a una lista normal para búsqueda binaria
+        temp_list = []
+        if self._clientes.goFirst():
+            temp_list.append(self._clientes.getActVal())
+            while self._clientes.goNext():
+                temp_list.append(self._clientes.getActVal())
+        
+        # Realizar búsqueda binaria en la lista temporal
+        izquierda, derecha = 0, len(temp_list) - 1
+        while izquierda <= derecha:
+            medio = (izquierda + derecha) // 2
+            if temp_list[medio].getDNI() == dni:
+                return temp_list[medio]
+            elif temp_list[medio].getDNI() < dni:
+                izquierda = medio + 1
+            else:
+                derecha = medio - 1
+        return None
+
+
+def main():
+    toDel = [100, 30, 100, 10, 50, 100, 20, 40, 100]
+    toAdd = [Persona(10, "Diez"), Persona(20, "Veinte"), 
+             Persona(30, "Treinta"), Persona(40, "Cuarenta"), 
+             Persona(50, "Cincuenta")]
+    clientes = lista()
+    
+    print("\n\t.: Pruebas de recorrido e inserción :.\n")
+    for k in range(5):
+        print(f"Recorrido con {len(clientes)} elementos:")
+        for cli in clientes:
+            print(f"{cli}")
+        clientes.add(toAdd[k])
+    
+    print(f"Cantidad de elementos finales: {len(clientes)}")
+    
+    print("\n\t.: Pruebas de borrado :.\n")
+    for dni in toDel:
+        print(f"Intentando quitar el valor {dni}", end="")
+        dropped = False
+        ok = clientes.goFirst()
+        while ok:
+            if clientes.getActVal().getDNI() == dni:
+                clientes.remove(clientes.getActPos())
+                print(" [Removido]", end="")
+                dropped = True
+            ok = clientes.goNext()
+        if not dropped:
+            print(" [No encontrado]", end="")
+        print(f"\nRecorrido con {len(clientes)} elementos:")
+        for cli in clientes:
+            print(f"{cli}")
+
+if __name__ == "__main__":
+    main()
